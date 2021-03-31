@@ -19,7 +19,7 @@ from utils import *
 parser = argparse.ArgumentParser(description='VAE MNIST Example')
 parser.add_argument('--batch-size', type=int, default=20, metavar='N',
                     help='input batch size for training (default: 20)')
-parser.add_argument('--epochs', type=int, default=4000, metavar='N',
+parser.add_argument('--epochs', type=int, default=3280, metavar='N',
                     help='number of epochs to train (default: 10)')
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='disables CUDA training')
