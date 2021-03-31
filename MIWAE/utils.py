@@ -23,4 +23,4 @@ def load_from_h5(hdf5_path):
     metrics_iwae_64 = hdf5_file['metrics_iwae_64'][:]
     metrics_iwae_5000 = hdf5_file['metrics_iwae_5000'][:]
     hdf5_file.close()
-    return metrics_iwae_k, metrics_iwae_64, metrics_iwae_5000
+    return list(metrics_iwae_k), list(metrics_iwae_64), list(metrics_iwae_5000)

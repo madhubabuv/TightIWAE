@@ -8,12 +8,11 @@ import torch
 import torch.utils.data
 from torch import nn, optim
 from torch.nn import functional as F
-from torchvision import datasets, transforms
 from torchvision.utils import save_image
 
 from torch.distributions.bernoulli import Bernoulli
+from torch.distributions.continuous_bernoulli import ContinuousBernoulli
 from torch.distributions.normal import Normal
-from PIL import Image
 import numpy as np
 
 from utils import *
@@ -32,6 +31,9 @@ parser.add_argument('--log-interval', type=int, default=20, metavar='N',
 
 parser.add_argument('--k', type=int, default=1)
 parser.add_argument('--M', type=int, default=1)
+
+parser.add_argument('--cont', action='store_true', default=False)
+
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
 
@@ -41,41 +43,20 @@ torch.manual_seed(args.seed)
 device = torch.device("cuda" if args.cuda else "cpu")
 print("runnning on", device)
 
+from datasets import load_binarised_MNIST
+
 path = "./datasets/MNIST"
-kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
-
-class stochMNIST(datasets.MNIST):
-    """ Gets a new stochastic binarization of MNIST at each call. """
-    def __getitem__(self, index):
-        if self.train:
-            img, target = self.train_data[index], self.train_labels[index]
-        else:
-            img, target = self.test_data[index], self.test_labels[index]
-
-        img = Image.fromarray(img.numpy(), mode='L')
-        img = transforms.ToTensor()(img)
-        img = torch.bernoulli(img)  # stochastically binarize
-        return img, target
-
-    def get_mean_img(self):
-        imgs = self.train_data.type(torch.float) / 255
-        mean_img = imgs.mean(0).reshape(-1).numpy()
-        return mean_img
-
-train_loader = torch.utils.data.DataLoader(
-    stochMNIST(path, train=True, download=True,transform=transforms.ToTensor()),batch_size=args.batch_size, shuffle=True, **kwargs)
-test_loader = torch.utils.data.DataLoader(
-    stochMNIST(path, train=False, transform=transforms.ToTensor()),batch_size=args.batch_size, shuffle=True, **kwargs)
+train_loader, test_loader, input_size = load_binarised_MNIST(path, args.cuda, args.batch_size)
 
 def debug_shape(item):
     return item.cpu().detach().numpy().shape
 
 class VAE(nn.Module):
-    def __init__(self, hidden_size = 400, latent_size = 20):
+    def __init__(self, input_size = 784, hidden_size = 400, latent_size = 20):
         super(VAE, self).__init__()
 
         # encoder layers
-        self.fc11 = nn.Linear(784, hidden_size)
+        self.fc11 = nn.Linear(input_size, hidden_size)
         self.fc12 = nn.Linear(hidden_size, hidden_size)
         self.fc21 = nn.Linear(hidden_size, latent_size)
         self.fc22 = nn.Linear(hidden_size, latent_size)
@@ -83,16 +64,17 @@ class VAE(nn.Module):
         # decoder layers
         self.fc31 = nn.Linear(latent_size, hidden_size)
         self.fc32 = nn.Linear(hidden_size, hidden_size)
-        self.fc4 = nn.Linear(hidden_size, 784)
+        self.fc4 = nn.Linear(hidden_size, input_size)
 
         self.hidden_size = hidden_size
         self.latent_size = latent_size
+        self.input_size = input_size
 
         self.prior_distribution = Normal(torch.zeros([self.latent_size]).to(device), torch.ones([self.latent_size]).to(device))
 
     def encode(self, x):
-        x = F.tanh(self.fc11(x))
-        x = F.tanh(self.fc12(x))
+        x = torch.tanh(self.fc11(x))
+        x = torch.tanh(self.fc12(x))
 
         mu_enc = self.fc21(x)
         std_enc = self.fc22(x)
@@ -108,9 +90,12 @@ class VAE(nn.Module):
         x = F.tanh(self.fc32(x))
         x = self.fc4(x)
         return Bernoulli(logits=x)
+        #return ContinuousBernoulli(logits=x) # note that MNIST is still binarized ...
+        # by default should be Bernoulli (for binarized MNIST), but see:
+        # The continuous Bernoulli: fixing a pervasive error in variational autoencoders https://arxiv.org/abs/1907.06845
 
     def forward(self, x, M, k):
-        input_x = x.view(-1, 784).to(device)
+        input_x = x.view(-1, self.input_size).to(device)
         # encoded distribution ~ q(z|x, params) = Normal (real input_x; encoder_into_Mu, encoder_into_Std )
         z_distribution = self.encode(input_x)
         # sample z values from this distribution
@@ -150,8 +135,7 @@ k = args.k
 #M = 5
 #k = 5
 
-model = VAE().to(device)
-
+model = VAE(input_size=input_size).to(device)
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
 def train(epoch):
@@ -211,31 +195,48 @@ def test(epoch):
 
             return test_loss_iwae_k, test_loss_iwae64, test_loss_iwae5000
 
+
+
 if __name__ == "__main__":
     metrics_iwae_k = []
     metrics_iwae_64 = []
     metrics_iwae_5000 = []
 
     files_name = "MIVAE_M"+str(M)+"_k"+str(k)
+    log_name = "logs/log_" + files_name + ".h5"
+    model_name = "logs/model_"+files_name+".pt"
+
+    if args.cont:
+        #model = torch.load("logs/model_" + files_name + "_best.pt")
+        model = torch.load(model_name)
+        model.to(device)
+        model.eval()
+
+        metrics_iwae_k, metrics_iwae_64, metrics_iwae_5000 = load_from_h5(log_name)
+        start_epoch = len(metrics_iwae_k)
+        print("Loading model from ", model_name, "logs from", log_name, "and skipping to epoch", start_epoch)
 
     mkdir("results")
     mkdir("logs")
 
-    best_test_loss = - np.inf
+    best_test_loss = np.inf
 
     try:
         for epoch in range(1, args.epochs + 1):
+            if args.cont:
+                if epoch < start_epoch:
+                    continue
+
             train(epoch)
             test_loss_iwae_k, test_loss_iwae64, test_loss_iwae5000 = test(epoch)
             metrics_iwae_k.append(test_loss_iwae_k)
             metrics_iwae_64.append(test_loss_iwae64)
             metrics_iwae_5000.append(test_loss_iwae5000)
 
-            log_name = "logs/log_"+files_name+".h5"
             save_to_h5(metrics_iwae_k, metrics_iwae_64, metrics_iwae_5000, log_name)
-            torch.save(model, "logs/model_"+files_name+".pt")
+            torch.save(model, model_name)
 
-            if test_loss_iwae_k > best_test_loss:
+            if test_loss_iwae_k < best_test_loss: # minimizing loss
                 best_test_loss = test_loss_iwae_k
                 torch.save(model, "logs/model_" + files_name + "_best.pt")
 
