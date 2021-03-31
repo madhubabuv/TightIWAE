@@ -11,7 +11,6 @@ from torch.nn import functional as F
 from torchvision.utils import save_image
 
 from torch.distributions.bernoulli import Bernoulli
-from torch.distributions.continuous_bernoulli import ContinuousBernoulli
 from torch.distributions.normal import Normal
 import numpy as np
 
