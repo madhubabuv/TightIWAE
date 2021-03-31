@@ -1,0 +1,6 @@
+## Download MNIST with:
+
+!wget www.di.ens.fr/~lelarge/MNIST.tar.gz
+!tar -zxvf MNIST.tar.gz
+
+# from https://stackoverflow.com/questions/66577151/http-error-when-trying-to-download-mnist-data
