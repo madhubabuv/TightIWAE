@@ -207,12 +207,35 @@ def test(epoch):
             print("−KL(Q||P): ", test_loss_iwae64-test_loss_iwae5000)
             print("---------------")
 
-if __name__ == "__main__":
-    for epoch in range(1, args.epochs + 1):
-        train(epoch)
-        test(epoch)
-        with torch.no_grad():
-            sample = torch.randn(64, 20).to(device)
-            sample = model.decode(sample).probs.cpu()
+            return test_loss_iwae_k, test_loss_iwae64, test_loss_iwae5000
 
-            save_image(sample.view(64, 1, 28, 28), 'results/sample_epoch' + str(epoch).zfill(4) + '.png')
+if __name__ == "__main__":
+    metrics_iwae_k = []
+    metrics_iwae_64 = []
+    metrics_iwae_5000 = []
+
+    try:
+        for epoch in range(1, args.epochs + 1):
+            train(epoch)
+            test_loss_iwae_k, test_loss_iwae64, test_loss_iwae5000 = test(epoch)
+            metrics_iwae_k.append(test_loss_iwae_k)
+            metrics_iwae_64.append(test_loss_iwae64)
+            metrics_iwae_5000.append(test_loss_iwae5000)
+
+            log_file = open("logs/last_logs.txt", "w")
+            np.savetxt(log_file, metrics_iwae_k)
+            np.savetxt(log_file, metrics_iwae_64)
+            np.savetxt(log_file, metrics_iwae_5000)
+            log_file.close()
+
+            with torch.no_grad():
+                sample = torch.randn(64, 20).to(device)
+                sample = model.decode(sample).probs.cpu()
+
+                save_image(sample.view(64, 1, 28, 28), 'results/sample_epoch' + str(epoch).zfill(4) + '.png')
+    except KeyboardInterrupt as E:
+
+        print("Interrupted! Ended the run with exception", E)
+        print("metrics_iwae_k = ", metrics_iwae_k)
+        print("metrics_iwae_64 = ", metrics_iwae_64)
+        print("metrics_iwae_5000 = ", metrics_iwae_5000)
