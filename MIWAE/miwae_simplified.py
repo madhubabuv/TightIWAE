@@ -16,6 +16,8 @@ from torch.distributions.normal import Normal
 from PIL import Image
 import numpy as np
 
+from utils import *
+
 parser = argparse.ArgumentParser(description='VAE MNIST Example')
 parser.add_argument('--batch-size', type=int, default=20, metavar='N',
                     help='input batch size for training (default: 20)')
@@ -39,7 +41,7 @@ torch.manual_seed(args.seed)
 device = torch.device("cuda" if args.cuda else "cpu")
 print("runnning on", device)
 
-path = "./MNIST"
+path = "./datasets/MNIST"
 kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
 
 class stochMNIST(datasets.MNIST):
@@ -214,6 +216,13 @@ if __name__ == "__main__":
     metrics_iwae_64 = []
     metrics_iwae_5000 = []
 
+    files_name = "MIVAE_M"+str(M)+"_k"+str(k)
+
+    mkdir("results")
+    mkdir("logs")
+
+    best_test_loss = - np.inf
+
     try:
         for epoch in range(1, args.epochs + 1):
             train(epoch)
@@ -222,17 +231,20 @@ if __name__ == "__main__":
             metrics_iwae_64.append(test_loss_iwae64)
             metrics_iwae_5000.append(test_loss_iwae5000)
 
-            log_file = open("logs/last_logs.txt", "w")
-            np.savetxt(log_file, metrics_iwae_k)
-            np.savetxt(log_file, metrics_iwae_64)
-            np.savetxt(log_file, metrics_iwae_5000)
-            log_file.close()
+            log_name = "logs/log_"+files_name+".h5"
+            save_to_h5(metrics_iwae_k, metrics_iwae_64, metrics_iwae_5000, log_name)
+            torch.save(model, "logs/model_"+files_name+".pt")
+
+            if test_loss_iwae_k > best_test_loss:
+                best_test_loss = test_loss_iwae_k
+                torch.save(model, "logs/model_" + files_name + "_best.pt")
 
             with torch.no_grad():
                 sample = torch.randn(64, 20).to(device)
                 sample = model.decode(sample).probs.cpu()
 
                 save_image(sample.view(64, 1, 28, 28), 'results/sample_epoch' + str(epoch).zfill(4) + '.png')
+
     except KeyboardInterrupt as E:
 
         print("Interrupted! Ended the run with exception", E)
