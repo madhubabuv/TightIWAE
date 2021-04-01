@@ -188,10 +188,14 @@ if __name__ == "__main__":
     M = args.M
     k = args.k
 
-    files_name = "MIVAE_M"+str(M)+"_k"+str(k)
+    if miwae:
+        files_name = "MIVAE_M"+str(M)+"_k"+str(k)
+    if piwae:
+        files_name = "PIWAE_M"+str(M)+"_k"+str(k)
+    if ciwae:
+        files_name = "CIVAE_beta"+str(beta)
     log_name = "logs/log_" + files_name + ".h5"
     model_name = "logs/model_"+files_name+".pt"
-    
 
 
     if args.cont:
