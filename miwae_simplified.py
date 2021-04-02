@@ -24,8 +24,8 @@ parser.add_argument('--epochs', type=int, default=3280, metavar='N',
                     help='number of epochs to train (default: 10)')
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='disables CUDA training')
-parser.add_argument('--seed', type=int, default=1, metavar='S',
-                    help='random seed (default: 1)')
+#parser.add_argument('--seed', type=int, default=1, metavar='S',
+#                    help='random seed (default: 1)')
 parser.add_argument('--log-interval', type=int, default=20, metavar='N',
                     help='how many batches to wait before logging training status')
 parser.add_argument('--beta', type=float, default=0.5, help='beta for CIWAE')
@@ -43,7 +43,7 @@ args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
 
 args.log_interval = 1
-torch.manual_seed(args.seed)
+#torch.manual_seed(args.seed)
 
 device = torch.device("cuda" if args.cuda else "cpu")
 piwae = args.piwae
@@ -67,9 +67,6 @@ train_loader, test_loader, input_size = load_binarised_MNIST(path, args.cuda, ar
 
 def debug_shape(item):
     return item.cpu().detach().numpy().shape
-
-
-
 
 args.log_interval = 500
 
@@ -188,6 +185,8 @@ def test(epoch):
             print("---------------")
 
             return test_loss_iwae_k, test_loss_iwae64, test_loss_iwae5000
+
+
 
 
 
