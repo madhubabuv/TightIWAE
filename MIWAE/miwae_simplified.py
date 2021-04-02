@@ -134,8 +134,16 @@ k = args.k
 #M = 5
 #k = 5
 
+# learning rate over epochs
+epoch_num = 0
+milestones = []
+for i in range(8):
+    epoch_num += 3**i
+    milestones.append(epoch_num)
+
 model = VAE(input_size=input_size).to(device)
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
+scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=10 ** (-1 / 7))
 
 def train(epoch):
     model.train()
@@ -234,6 +242,8 @@ if __name__ == "__main__":
 
             save_to_h5(metrics_iwae_k, metrics_iwae_64, metrics_iwae_5000, log_name)
             torch.save(model, model_name)
+
+            scheduler.step()
 
             if test_loss_iwae_k < best_test_loss: # minimizing loss
                 best_test_loss = test_loss_iwae_k
