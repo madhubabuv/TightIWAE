@@ -74,14 +74,25 @@ def debug_shape(item):
 args.log_interval = 500
 
 
+# learning rate over epochs
+epoch_num = 0
+milestones = []
+for i in range(8):
+    epoch_num += 3**i
+    milestones.append(epoch_num)
 
 model = VAE(input_size=input_size,piwae=piwae,device=device).to(device)
 
 if piwae:
     optimizer_encoder = optim.Adam(model.encoder.parameters(),lr=1e-3)
     optimizer_decoder = optim.Adam(model.decoder.parameters(),lr=1e-3)
+    scheduler_enc = optim.lr_scheduler.MultiStepLR(optimizer_encoder, milestones=milestones, gamma=10 ** (-1 / 7))
+    scheduler_dec = optim.lr_scheduler.MultiStepLR(optimizer_decoder, milestones=milestones, gamma=10 ** (-1 / 7))
+
 else:
     optimizer = optim.Adam(model.parameters(), lr=1e-3)
+    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=10 ** (-1 / 7))
+
 
 def train(epoch,M,k):
     model.train()
@@ -232,12 +243,18 @@ if __name__ == "__main__":
                 best_test_loss = test_loss_iwae_k
                 torch.save(model, "logs/model_" + files_name + "_best.pt")
 
-            with torch.no_grad():
-                sample = torch.randn(64, 20).to(device)
-                sample = model.decode(sample).probs.cpu()
+            #with torch.no_grad():
+            #    sample = torch.randn(64, 20).to(device)
+            #    sample = model.decode(sample).probs.cpu() # piwae AttributeError: 'VAE' object has no attribute 'decode'
 
-                save_image(sample.view(64, 1, 28, 28), 'results/sample_epoch' + str(epoch).zfill(4) + '.png')
-    
+            #    save_image(sample.view(64, 1, 28, 28), 'results/sample_epoch' + str(epoch).zfill(4) + '.png')
+
+            if piwae:
+                scheduler_enc.step()
+                scheduler_dec.step()
+            else:
+                scheduler.step()
+
     except KeyboardInterrupt as E:
 
         print("Interrupted! Ended the run with exception", E)
