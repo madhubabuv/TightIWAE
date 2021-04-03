@@ -36,6 +36,7 @@ parser.add_argument('--piwae', action='store_true', default=False)
 parser.add_argument('--miwae', action='store_true', default=False)
 parser.add_argument('--ciwae', action='store_true', default=False)
 
+parser.add_argument('--repetition', type=int, default=1)
 
 parser.add_argument('--cont', action='store_true', default=False)
 
@@ -204,6 +205,9 @@ if __name__ == "__main__":
         files_name = "PIWAE_M"+str(M)+"_k"+str(k)
     if ciwae:
         files_name = "CIVAE_beta"+str(beta)
+
+    if args.repetition != 1:
+        files_name += "_repeat"+str(args.repetition).zfill(2) # support for repeated runs on cluster
     log_name = "logs/log_" + files_name + ".h5"
     model_name = "logs/model_"+files_name+".pt"
 
