@@ -18,44 +18,49 @@ from utils import *
 
 
 class Encoder(nn.Module):
-    def __init__(self, input_size, hidden_size, latent_size):
+    def __init__(self, input_size, hidden_size, latent_size, num_layers = 2):
         super(Encoder, self).__init__()
+        self.num_layers = num_layers
+
         self.fc11 = nn.Linear(input_size, hidden_size)
-        self.fc12 = nn.Linear(hidden_size, hidden_size)
+        if self.num_layers == 2: self.fc12 = nn.Linear(hidden_size, hidden_size)
         self.fc21 = nn.Linear(hidden_size, latent_size)
         self.fc22 = nn.Linear(hidden_size, latent_size)
     def forward(self,x):
         x = torch.tanh(self.fc11(x))
-        x = torch.tanh(self.fc12(x))
+        if self.num_layers == 2: x = torch.tanh(self.fc12(x))
 
         mu_enc = self.fc21(x)
         std_enc = self.fc22(x)
         return Normal(mu_enc, F.softplus(std_enc))
 class Decoder(nn.Module):
-    def __init__(self, input_size, hidden_size, latent_size):
+    def __init__(self, input_size, hidden_size, latent_size, num_layers = 2):
         super(Decoder, self).__init__()
+        self.num_layers = num_layers
+
         self.fc31 = nn.Linear(latent_size, hidden_size)
-        self.fc32 = nn.Linear(hidden_size, hidden_size)
+        if self.num_layers == 2: self.fc32 = nn.Linear(hidden_size, hidden_size)
         self.fc4 = nn.Linear(hidden_size, input_size)
+
         
     def forward(self,x,z):
         x = F.tanh(self.fc31(z))
-        x = F.tanh(self.fc32(x))
+        if self.num_layers == 2: x = F.tanh(self.fc32(x))
         x = self.fc4(x)
         return Bernoulli(logits=x)
     
 class VAE(nn.Module):
-    def __init__(self, input_size = 784, hidden_size = 400, latent_size = 20, piwae=False, device=torch.device('cuda')):
+    def __init__(self, input_size = 784, hidden_size = 400, latent_size = 20, num_layers = 2, piwae=False, device=torch.device('cuda')):
         super(VAE, self).__init__()
 
         self.piwae = piwae
         self.device = device
         
         # encoder layers
-        self.encoder = Encoder(input_size, hidden_size, latent_size)
+        self.encoder = Encoder(input_size, hidden_size, latent_size, num_layers)
         
         # decoder layers
-        self.decoder = Decoder(input_size, hidden_size, latent_size)
+        self.decoder = Decoder(input_size, hidden_size, latent_size, num_layers)
         
 
         self.hidden_size = hidden_size

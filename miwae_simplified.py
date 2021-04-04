@@ -79,7 +79,12 @@ for i in range(8):
     epoch_num += 3**i
     milestones.append(epoch_num)
 
-model = VAE(input_size=input_size,piwae=piwae,device=device).to(device)
+model = VAE(input_size=input_size,piwae=piwae,device=device,
+            hidden_size = 200, latent_size = 50, num_layers = 1).to(device)
+# use the same details from the original IWAE paper
+# hidden size 200
+# latent size 50
+# number of layers in Enc/Dec only 1
 
 if piwae:
     optimizer_encoder = optim.Adam(model.encoder.parameters(),lr=1e-3)
