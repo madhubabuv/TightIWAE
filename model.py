@@ -16,6 +16,8 @@ import numpy as np
 import pdb
 from utils import *
 
+min_epsilon = 1e-5
+max_epsilon = 1.-1e-5
 
 class Encoder(nn.Module):
     def __init__(self, input_size, hidden_size, latent_size):
@@ -45,11 +47,12 @@ class Decoder(nn.Module):
         return Bernoulli(logits=x)
     
 class VAE(nn.Module):
-    def __init__(self, input_size = 784, hidden_size = 400, latent_size = 20, piwae=False, device=torch.device('cuda')):
+    def __init__(self, input_size = 784, hidden_size = 200, latent_size = 20, piwae=False, device=torch.device('cuda'),input_type = 'binary'):
         super(VAE, self).__init__()
 
         self.piwae = piwae
         self.device = device
+        self.input_type = input_type
         
         # encoder layers
         self.encoder = Encoder(input_size, hidden_size, latent_size)
@@ -71,25 +74,21 @@ class VAE(nn.Module):
         return mu + eps*std
     
     def forward(self, x, M, k,train=True):
-        
-        
+
+            
         if train:
             
+            input_x = x.view(-1, self.input_size).to(self.device)
+            z_distribution = self.encoder(input_x)                                
+            z = z_distribution.rsample(torch.Size([M, k]))
+            x_distribution = self.decoder(x,z)
+    
+            elbo = self.elbo(input_x, z, x_distribution, z_distribution)  # mean_n, imp_n, batch_size
+            elbo_iwae = self.logmeanexp(elbo, 1).squeeze(1)  # mean_n, batch_size
+            loss = - torch.mean(elbo_iwae, 0)  # batch_size
+
+            return x_distribution.probs, elbo, loss 
                 
-                
-                input_x = x.view(-1, self.input_size).to(self.device)
-                
-                z_distribution = self.encoder(input_x)                                
-                z = z_distribution.rsample(torch.Size([M, k]))
-        
-                
-                x_distribution = self.decoder(x,z)
-        
-                elbo = self.elbo(input_x, z, x_distribution, z_distribution)  # mean_n, imp_n, batch_size
-                elbo_iwae = self.logmeanexp(elbo, 1).squeeze(1)  # mean_n, batch_size
-                loss = - torch.mean(elbo_iwae, 0)  # batch_size
-                return x_distribution.probs, elbo, loss 
-                    
             
                 
         else:
@@ -108,7 +107,9 @@ class VAE(nn.Module):
             #self.prior_distribution = Normal(torch.zeros([self.latent_size]).to(device), torch.ones([self.latent_size]).to(device))
     
             elbo = self.elbo(input_x, z, x_distribution, z_distribution)  # mean_n, imp_n, batch_size
+
             elbo_iwae = self.logmeanexp(elbo, 1).squeeze(1)  # mean_n, batch_size
+
             loss = - torch.mean(elbo_iwae, 0)  # batch_size
             
         return x_distribution.probs, elbo, loss
@@ -121,12 +122,69 @@ class VAE(nn.Module):
             return (inputs - input_max).exp().mean(dim).log() + input_max
 
     def elbo(self, input_x, z, x_distribution, z_distribution):
-        lpxz = x_distribution.log_prob(input_x).sum(-1)
-
+        '''#lpxz = x_distribution.log_prob(input_x).sum(-1)
         lpz = self.prior_distribution.log_prob(z).sum(-1)
         lqzx = z_distribution.log_prob(z).sum(-1)
         kl = -lpz + lqzx
-        return -kl + lpxz
+        return -kl + lpxz'''
 
 
-    
+        if self.input_type == 'binary':
+
+            RE  = self.log_Bernoulli(input_x, x_distribution.mean, dim=-1)
+
+        elif self.input_type == 'gray' or self.input_type == 'continuous':
+
+            RE = -1. * self.log_Logistic_256(input_x, x_distribution.mean, logvar=0.0 , dim=1)
+
+        else:
+
+            raise Exception('Wrong input type!')
+
+        lpz = self.prior_distribution.log_prob(z).sum(-1)
+        lqzx = z_distribution.log_prob(z).sum(-1)
+
+        kl = -1. * lpz + lqzx
+
+        return -1. * kl + RE
+
+
+    def log_Bernoulli(self, x, mean, average=False, dim=None):
+
+        probs = torch.clamp( mean, min=min_epsilon, max=max_epsilon )
+
+        log_bernoulli = x * torch.log( probs ) + (1. - x ) * torch.log( 1. - probs )
+
+        if average:
+            return torch.mean( log_bernoulli, dim )
+        else:
+            return torch.sum( log_bernoulli, dim )
+
+    def logisticCDF(self,x, u, s):
+        return 1. / ( 1. + torch.exp( -(x-u) / s ) )
+
+    def sigmoid(self,x):
+        return 1. / ( 1. + torch.exp( -x ) )
+
+    def log_Logistic_256(self,x, mean, logvar, average=False, reduce=True, dim=None):
+        bin_size = 1. / 256.
+
+        # implementation like https://github.com/openai/iaf/blob/master/tf_utils/distributions.py#L28
+        scale = torch.exp(logvar)
+        x = (torch.floor(x / bin_size) * bin_size - mean) / scale
+        cdf_plus = torch.sigmoid(x + bin_size/scale)
+        cdf_minus = torch.sigmoid(x)
+
+        # calculate final log-likelihood for an image
+        log_logist_256 = - torch.log(cdf_plus - cdf_minus + 1.e-7)
+
+        if reduce:
+            if average:
+                return torch.mean(log_logist_256, dim)
+            else:
+                return torch.sum(log_logist_256, dim)
+        else:
+            return log_logist_256
+
+
+        

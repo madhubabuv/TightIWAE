@@ -12,14 +12,31 @@ from torchvision.utils import save_image
 
 from torch.distributions.bernoulli import Bernoulli
 from torch.distributions.normal import Normal
+from load_data import load_dataset
 import numpy as np
 import pdb
 from utils import *
 from model import VAE
 
+#from datasets import load_binarised_MNIST
+
 parser = argparse.ArgumentParser(description='VAE MNIST Example')
 parser.add_argument('--batch-size', type=int, default=20, metavar='N',
                     help='input batch size for training (default: 20)')
+parser.add_argument('--test_batch_size', type=int, default=20, metavar='BStest',
+                    help='input batch size for testing (default: 20)')
+parser.add_argument('--use_training_data_init', action='store_true', default=False,
+                    help='initialize pseudo-inputs with randomly chosen training data')
+
+parser.add_argument('--dataset_name', type=str, default='freyfaces', metavar='DN',
+                    help='name of the dataset: static_mnist, dynamic_mnist, omniglot, caltech101silhouettes, histopathologyGray, freyfaces, cifar10')
+
+parser.add_argument('--hidden_units', type=int, default=200, metavar='N',
+                    help='input batch size for training (default: 20)')
+
+#parser.add_argument('--dataset_dir', default="./datasets/MNIST", 
+#                    help='dataset directory')
+
 parser.add_argument('--epochs', type=int, default=3280, metavar='N',
                     help='number of epochs to train (default: 10)')
 parser.add_argument('--no-cuda', action='store_true', default=False,
@@ -29,19 +46,15 @@ parser.add_argument('--no-cuda', action='store_true', default=False,
 parser.add_argument('--log-interval', type=int, default=20, metavar='N',
                     help='how many batches to wait before logging training status')
 parser.add_argument('--beta', type=float, default=0.5, help='beta for CIWAE')
-
 parser.add_argument('--k', type=int, default=1)
 parser.add_argument('--M', type=int, default=1)
 parser.add_argument('--piwae', action='store_true', default=False)
 parser.add_argument('--miwae', action='store_true', default=False)
 parser.add_argument('--ciwae', action='store_true', default=False)
-
-
 parser.add_argument('--cont', action='store_true', default=False)
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
-
 args.log_interval = 1
 #torch.manual_seed(args.seed)
 
@@ -59,18 +72,23 @@ elif ciwae:
     beta = args.beta
     print('Using CIWAE with beta ' +str(beta)+'\n' )
 
-from datasets import load_binarised_MNIST
 
-path = "./datasets/MNIST"
+#train_loader, test_loader, input_size = load_binarised_MNIST(args.dataset_dir, args.cuda, args.batch_size)
 
-train_loader, test_loader, input_size = load_binarised_MNIST(path, args.cuda, args.batch_size)
+
+kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
+
+train_loader, val_loader, test_loader, args = load_dataset(args, **kwargs)
+
+input_size = args.input_size[1] * args.input_size[2]
+
+if 'cifar' in args.dataset_name:
+    input_size*=3
 
 def debug_shape(item):
     return item.cpu().detach().numpy().shape
 
 args.log_interval = 500
-
-
 # learning rate over epochs
 epoch_num = 0
 milestones = []
@@ -78,7 +96,7 @@ for i in range(8):
     epoch_num += 3**i
     milestones.append(epoch_num)
 
-model = VAE(input_size=input_size,piwae=piwae,device=device).to(device)
+model = VAE(input_size=input_size, hidden_size = args.hidden_units, piwae=piwae,device=device,input_type = args.input_type).to(device)
 
 if piwae:
     optimizer_encoder = optim.Adam(model.encoder.parameters(),lr=1e-3)
@@ -96,7 +114,6 @@ def train(epoch,M,k):
     train_loss = 0
     for batch_idx, (data, _) in enumerate(train_loader):
         data = data.to(device)
-
         
         if piwae:
             
