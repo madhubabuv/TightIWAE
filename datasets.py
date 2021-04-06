@@ -136,7 +136,7 @@ def load_celeb_a_32x32(cuda, batch_size, path = "datasets/CelebA32x32/", train_t
         print("data loaded as:", data.shape)
 
     data = np.clip((data + 0.5) / 256., 0., 1.)
-
+    data = np.asarray(data, dtype=np.float32)
 
     # shuffle
     np.random.seed(42)
