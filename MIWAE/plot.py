@@ -1,6 +1,7 @@
 from pylab import plt
 from utils import *
 import numpy as np
+import pandas as pd
 
 piwaes = ["../log_PIWAE_M8_k8.h5", "../log_PIWAE_M8_k8_repeat02.h5"]
 miwaes = ["../log_MIVAE_M8_k8.h5", "../log_MIVAE_M8_k8_repeat02.h5"]
@@ -16,9 +17,13 @@ select_iwae_5000 = lambda x: x[2]
 plt.figure(figsize=(16,4))
 plt.title("Figure 5.a replication, IWAE64")
 select_func = select_iwae_64
+rolling_mean = 5
+#rolling_mean = None
+
 
 plt.title("Figure 5.b replication, log^p(x) (= IWAE5000)")
 select_func = select_iwae_5000
+rolling_mean = None
 
 def plot_h5_file_k64(log_name, label, color):
     metrics_iwae_k, metrics_iwae_64, metrics_iwae_5000 = load_from_h5(log_name)
@@ -34,7 +39,7 @@ def plot_h5_file_k64_average(log_names, label, color, skip_every = 0):
         repetitions.append(selected)
 
     number_of_epochs_max = 0
-    number_of_epochs_min = 999
+    number_of_epochs_min = 999999
     for arr in repetitions:
         number_of_epochs_max = max(len(arr), number_of_epochs_max)
         number_of_epochs_min = min(len(arr), number_of_epochs_max)
@@ -68,11 +73,18 @@ def plot_h5_file_k64_average(log_names, label, color, skip_every = 0):
 
     average_values = -1 * np.asarray(average_values)
     std_values = np.asarray(std_values)
-    p = plt.plot(xs, average_values, label=label, color=color)
-    col = p[0].get_color()
 
-    #xs = list(range(len(average_values)))
-    plt.fill_between(xs, average_values-std_values, average_values+std_values, color=col, alpha=0.25)
+    if rolling_mean is not None:
+        pd_average_values = pd.DataFrame(average_values)
+        p = plt.plot(pd_average_values[0].rolling(rolling_mean).mean(), color, label=label)
+        #p = plt.plot(pd_average_values[0], color, pd_average_values[0].rolling(rolling_mean).mean(), color, label=label)
+
+    else:
+        p = plt.plot(xs, average_values, label=label, color=color)
+        col = p[0].get_color()
+
+        xs = list(range(len(average_values)))
+        plt.fill_between(xs, average_values-std_values, average_values+std_values, color=col, alpha=0.25)
 
 
 
@@ -87,7 +99,7 @@ plot_h5_file_k64_average(ciwaes, "CIWAE beta=0.5", color='#55a868')
 
 #plt.ylim(-92,-83)
 plt.ylim(-94.5,-82)
-plt.xlim(0,800)
+plt.xlim(0,2700)
 
 
 plt.legend()
