@@ -50,7 +50,7 @@ class Decoder(nn.Module):
         if self.input_type == 'binary':
             mean = self.fc4(x)
             mean = F.sigmoid(mean)
-            return Bernoulli(logits=mean),None
+            return Bernoulli(logits=mean)
         else:
             mean = self.fc4(x)
             mean = F.sigmoid(mean)
@@ -96,7 +96,7 @@ class VAE(nn.Module):
 
                 #print("Input image type to be found Binary, so going with Bernoulli")
 
-                x_distribution = self.decoder(x,z,bernoulli=True)
+                x_distribution = self.decoder(x,z) # bernoulli=True - checked inside the function instead ...
             else:
 
                 #print('input image type to be found, ',self.input_type," so,using Normal distribution")
@@ -112,6 +112,9 @@ class VAE(nn.Module):
             
                 
         else:
+            pass # imo doesnt happen...
+            """
+            assert False
             input_x = x.view(-1, self.input_size).to(device)
             # encoded distribution ~ q(z|x, params) = Normal (real input_x; encoder_into_Mu, encoder_into_Std )
             
@@ -139,6 +142,7 @@ class VAE(nn.Module):
             loss = -torch.mean(elbo_iwae, 0)  # batch_size
             
             return x_distribution, elbo, loss
+            """
 
     def logmeanexp(self, inputs, dim=1): # ***
         if inputs.size(dim) == 1:
