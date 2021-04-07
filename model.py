@@ -157,6 +157,10 @@ class VAE(nn.Module):
 
             RE = -1. * self.log_Logistic_256(input_x, x_distribution.loc, logvar=x_distribution.scale , dim=-1)
 
+            RE = -1. * self.log_Logistic_256(input_x, x_distribution.mean, logvar=torch.tensor(0.0), dim=1)
+            RE = torch.sum(RE, dim=2) # sum reconstruction err (1, 20, 784) > (1, 20)
+            RE = RE / self.input_size # divided by number of pixels > mean reconstruction err
+
         else:
 
             raise Exception('Wrong input type!')

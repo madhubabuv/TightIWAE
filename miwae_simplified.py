@@ -222,8 +222,9 @@ if __name__ == "__main__":
         files_name = "PIWAE_M"+str(M)+"_k"+str(k)
     if ciwae:
         files_name = "CIVAE_beta"+str(beta)
+    files_name = files_name + "_" + args.dataset_name
     log_name = "logs/log_" + files_name + ".h5"
-    model_name = "logs/model_"+files_name+".pt"
+    model_name = "logs/model_" + files_name + ".pt"
 
 
     if args.cont:
