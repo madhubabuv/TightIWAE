@@ -34,20 +34,31 @@ class Encoder(nn.Module):
         std_enc = self.fc22(x)
         return Normal(mu_enc, F.softplus(std_enc))
 class Decoder(nn.Module):
-    def __init__(self, input_size, hidden_size, latent_size):
+    def __init__(self, input_size, hidden_size, latent_size, input_type = 'binary'):
         super(Decoder, self).__init__()
         self.fc31 = nn.Linear(latent_size, hidden_size)
         self.fc32 = nn.Linear(hidden_size, hidden_size)
         self.fc4 = nn.Linear(hidden_size, input_size)
+        self.input_type = input_type
+        if self.input_type != 'binary':
+            self.fc5= nn.Linear(hidden_size, input_size)
         
     def forward(self,x,z):
         x = F.tanh(self.fc31(z))
         x = F.tanh(self.fc32(x))
-        x = self.fc4(x)
-        return Bernoulli(logits=x)
-    
+
+        if self.input_type == 'binary':
+            mean = self.fc4(x)
+            mean = F.sigmoid(mean)
+            return Bernoulli(logits=mean),None
+        else:
+            mean = self.fc4(x)
+            mean = F.sigmoid(mean)
+            std_dec = self.fc5(x)
+            return Normal(mean,F.softplus(std_dec))
+
 class VAE(nn.Module):
-    def __init__(self, input_size = 784, hidden_size = 200, latent_size = 20, piwae=False, device=torch.device('cuda'),input_type = 'binary'):
+    def __init__(self, input_size = 784, hidden_size = 200, latent_size = 20, piwae=False, device=torch.device('cuda'), input_type = 'binary'):
         super(VAE, self).__init__()
 
         self.piwae = piwae
@@ -58,13 +69,12 @@ class VAE(nn.Module):
         self.encoder = Encoder(input_size, hidden_size, latent_size)
         
         # decoder layers
-        self.decoder = Decoder(input_size, hidden_size, latent_size)
+        self.decoder = Decoder(input_size, hidden_size, latent_size,input_type=input_type)
         
 
         self.hidden_size = hidden_size
         self.latent_size = latent_size
         self.input_size = input_size
-
         self.prior_distribution = Normal(torch.zeros([self.latent_size]).to(device), torch.ones([self.latent_size]).to(device))
      
     
@@ -81,13 +91,23 @@ class VAE(nn.Module):
             input_x = x.view(-1, self.input_size).to(self.device)
             z_distribution = self.encoder(input_x)                                
             z = z_distribution.rsample(torch.Size([M, k]))
-            x_distribution = self.decoder(x,z)
+
+            if self.input_type == 'binary':
+
+                #print("Input image type to be found Binary, so going with Bernoulli")
+
+                x_distribution = self.decoder(x,z,bernoulli=True)
+            else:
+
+                #print('input image type to be found, ',self.input_type," so,using Normal distribution")
+
+                x_distribution = self.decoder(x,z)
     
             elbo = self.elbo(input_x, z, x_distribution, z_distribution)  # mean_n, imp_n, batch_size
             elbo_iwae = self.logmeanexp(elbo, 1).squeeze(1)  # mean_n, batch_size
-            loss = - torch.mean(elbo_iwae, 0)  # batch_size
+            loss = -1.* torch.mean(elbo_iwae, 0)  # batch_size
 
-            return x_distribution.probs, elbo, loss 
+            return x_distribution, elbo, loss 
                 
             
                 
@@ -101,7 +121,13 @@ class VAE(nn.Module):
             z = z_distribution.rsample(torch.Size([M, k]))
     
             # reconstructions distribution ~ p(x|z, params) = Normal/Bernoulli (sampled z)
-            x_distribution = self.decoder(z)
+            if args.input_type =='binary':
+
+                x_distribution = self.decoder(z,bernoulli=True)
+
+            else:
+
+                x_distribution = self.decoder(z)
     
             # priors distribution ~ p(z) = Normal (sampled z; 0s, 1s ) 
             #self.prior_distribution = Normal(torch.zeros([self.latent_size]).to(device), torch.ones([self.latent_size]).to(device))
@@ -110,9 +136,9 @@ class VAE(nn.Module):
 
             elbo_iwae = self.logmeanexp(elbo, 1).squeeze(1)  # mean_n, batch_size
 
-            loss = - torch.mean(elbo_iwae, 0)  # batch_size
+            loss = -torch.mean(elbo_iwae, 0)  # batch_size
             
-        return x_distribution.probs, elbo, loss
+            return x_distribution, elbo, loss
 
     def logmeanexp(self, inputs, dim=1): # ***
         if inputs.size(dim) == 1:
@@ -122,12 +148,6 @@ class VAE(nn.Module):
             return (inputs - input_max).exp().mean(dim).log() + input_max
 
     def elbo(self, input_x, z, x_distribution, z_distribution):
-        '''#lpxz = x_distribution.log_prob(input_x).sum(-1)
-        lpz = self.prior_distribution.log_prob(z).sum(-1)
-        lqzx = z_distribution.log_prob(z).sum(-1)
-        kl = -lpz + lqzx
-        return -kl + lpxz'''
-
 
         if self.input_type == 'binary':
 
@@ -135,13 +155,14 @@ class VAE(nn.Module):
 
         elif self.input_type == 'gray' or self.input_type == 'continuous':
 
-            RE = -1. * self.log_Logistic_256(input_x, x_distribution.mean, logvar=0.0 , dim=1)
+            RE = -1. * self.log_Logistic_256(input_x, x_distribution.loc, logvar=x_distribution.scale , dim=-1)
 
         else:
 
             raise Exception('Wrong input type!')
 
         lpz = self.prior_distribution.log_prob(z).sum(-1)
+        
         lqzx = z_distribution.log_prob(z).sum(-1)
 
         kl = -1. * lpz + lqzx
@@ -170,8 +191,9 @@ class VAE(nn.Module):
         bin_size = 1. / 256.
 
         # implementation like https://github.com/openai/iaf/blob/master/tf_utils/distributions.py#L28
-        scale = torch.exp(logvar)
+        scale = logvar #torch.exp(logvar)
         x = (torch.floor(x / bin_size) * bin_size - mean) / scale
+
         cdf_plus = torch.sigmoid(x + bin_size/scale)
         cdf_minus = torch.sigmoid(x)
 

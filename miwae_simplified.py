@@ -82,6 +82,7 @@ train_loader, val_loader, test_loader, args = load_dataset(args, **kwargs)
 
 input_size = args.input_size[1] * args.input_size[2]
 
+
 if 'cifar' in args.dataset_name:
     input_size*=3
 
