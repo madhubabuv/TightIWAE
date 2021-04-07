@@ -58,7 +58,7 @@ class Decoder(nn.Module):
             return Normal(mean,F.softplus(std_dec))
 
 class VAE(nn.Module):
-    def __init__(self, input_size = 784, hidden_size = 200, latent_size = 20, piwae=False, device=torch.device('cuda'), input_type = 'binary'):
+    def __init__(self, input_size = 784, hidden_size = 200, latent_size = 50, piwae=False, device=torch.device('cuda'), input_type = 'binary'):
         super(VAE, self).__init__()
 
         self.piwae = piwae

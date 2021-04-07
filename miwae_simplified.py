@@ -32,7 +32,7 @@ parser.add_argument('--dataset_name', type=str, default='freyfaces', metavar='DN
                     help='name of the dataset: static_mnist, dynamic_mnist, omniglot, caltech101silhouettes, histopathologyGray, freyfaces, cifar10')
 
 parser.add_argument('--hidden_units', type=int, default=200, metavar='N',
-                    help='input batch size for training (default: 20)')
+                    help='input batch size for training (default: 200)')
 
 #parser.add_argument('--dataset_dir', default="./datasets/MNIST", 
 #                    help='dataset directory')
@@ -97,7 +97,7 @@ for i in range(8):
     epoch_num += 3**i
     milestones.append(epoch_num)
 
-model = VAE(input_size=input_size, hidden_size = args.hidden_units, piwae=piwae,device=device,input_type = args.input_type).to(device)
+model = VAE(input_size=input_size, hidden_size = args.hidden_units, latent_size=50, piwae=piwae,device=device,input_type = args.input_type).to(device)
 
 if piwae:
     optimizer_encoder = optim.Adam(model.encoder.parameters(),lr=1e-3)
