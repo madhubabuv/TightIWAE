@@ -14,9 +14,9 @@ import pdb
 import pytorch_ssim
 
 model_load_path = "../../___PLOTTING/TightIWAE/___PLOTTING/1_reference_model/logs/model_MIVAE_M8_k8_repeat10_best.pt"
-log_load_path = "../../___PLOTTING/TightIWAE/___PLOTTING/1_reference_model/logs/log_MIVAE_M8_k8_repeat10.h5"
-M = 8
-k = 8
+model_hidden_size = 200
+model_latent_size = 50
+model_num_layers = 2
 
 # =================================
 
@@ -54,15 +54,7 @@ elif args.dataset_name == 'omniglot':
     path = "./datasets/omniglot"
     train_loader, test_loader, input_size = load_OMNIGLOT(path, args.cuda, args.batch_size)
 
-
-def debug_shape(item):
-    return item.cpu().detach().numpy().shape
-
-model = VAE(input_size=input_size, device=device, hidden_size=200, latent_size=50, num_layers=2).to(device)
-# use the same details from the original IWAE paper
-# hidden size 200
-# latent size 50
-# number of layers in Enc/Dec only 2
+model = VAE(input_size=input_size, device=device, hidden_size=model_hidden_size, latent_size=model_latent_size, num_layers=model_num_layers).to(device)
 
 def visualize(viz_name):
     model.eval()
@@ -70,6 +62,8 @@ def visualize(viz_name):
     ssim_loss = pytorch_ssim.SSIM()
 
     with torch.no_grad():
+        ssim_losses = []
+        it = 0
 
         for data, _ in test_loader:
             reconstruction, elbo, loss = model(data, M=1, k=1)
@@ -78,12 +72,13 @@ def visualize(viz_name):
             out_grid = reconstruction.view(samples_n, 1, 28, 28)
             in_grid = data.view(samples_n, 1, 28, 28)
 
-            print("in_grid.shape",in_grid.shape)
-            print("out_grid.shape",out_grid.shape)
+            #print("in_grid.shape",in_grid.shape)
+            #print("out_grid.shape",out_grid.shape)
 
-            save_image(in_grid, 'inputs_'+viz_name+'.png')
-            save_image(out_grid, 'reconstructions_'+viz_name+'.png')
-            ssim_losses = []
+            if it == 0:
+                save_image(in_grid, 'inputs_'+viz_name+'.png')
+                save_image(out_grid, 'reconstructions_'+viz_name+'.png')
+            it += 1
             for item_idx in range(samples_n):
                 in_data = in_grid[item_idx,0].reshape((1,1,)+image_shape)
                 out_data = out_grid[item_idx,0].reshape((1,1,)+image_shape)
@@ -96,26 +91,17 @@ def visualize(viz_name):
                 ssim = ssim_loss(in_data, out_data)
                 ssim_losses.append(ssim.cpu().numpy())
 
-            ssim_losses = np.asarray(ssim_losses)
-            print("average ssim loss:", np.mean(ssim_losses), np.std(ssim_losses))
 
-            break
+        ssim_losses = np.asarray(ssim_losses)
+        print("(over whole test set) average ssim loss:", np.mean(ssim_losses), np.std(ssim_losses))
+
 
 
 if __name__ == "__main__":
-    metrics_iwae_k = []
-    metrics_iwae_64 = []
-    metrics_iwae_5000 = []
-
     # model = torch.load("logs/model_" + files_name + "_best.pt")
     model = torch.load(model_load_path)
     model.to(device)
     model.eval()
-
-    metrics_iwae_k, metrics_iwae_64, metrics_iwae_5000 = load_from_h5(log_load_path)
-    start_epoch = len(metrics_iwae_k)
-    print("Loading model from ", model_load_path, "logs from", log_load_path, "and skipping to epoch", start_epoch)
-
 
     viz_name = args.dataset_name + "_" + model_load_path.split("/")[-1]
     print(model)
