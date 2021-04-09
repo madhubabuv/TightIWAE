@@ -43,7 +43,7 @@ def load_binarised_MNIST(path, cuda, batch_size):
 
     return train_loader, test_loader, input_size
 
-def load_OMNIGLOT(cuda, batch_size, path = "./datasets/omniglot"):
+def load_OMNIGLOT(path = "./datasets/omniglot", cuda=False, batch_size=20):
     """ Get from https://github.com/yburda/iwae/raw/master/datasets/OMNIGLOT/chardata.mat """
     kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
 

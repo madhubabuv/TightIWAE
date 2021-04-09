@@ -38,6 +38,9 @@ parser.add_argument('--ciwae', action='store_true', default=False)
 
 parser.add_argument('--repetition', type=int, default=1)
 
+parser.add_argument('--dataset_name', type=str, default='mnist', metavar='DN',
+                    help='name of the dataset: mnist, omniglot')
+
 parser.add_argument('--cont', action='store_true', default=False)
 parser.add_argument('--ciwae-beta', action='store_true', default=False)
 
@@ -64,12 +67,15 @@ elif ciwae:
 elif ciwae_beta:
     beta = args.beta
     print('Using CIWAE with beta learning, initial beta = ' +str(beta)+'\n' )
- 
-from datasets import load_binarised_MNIST
 
-path = "./datasets/MNIST"
-
-train_loader, test_loader, input_size = load_binarised_MNIST(path, args.cuda, args.batch_size)
+if args.dataset_name == 'mnist':
+    from datasets import load_binarised_MNIST
+    path = "./datasets/MNIST"
+    train_loader, test_loader, input_size = load_binarised_MNIST(path, args.cuda, args.batch_size)
+elif args.dataset_name == 'omniglot':
+    from datasets import load_OMNIGLOT
+    path = "./datasets/omniglot"
+    train_loader, test_loader, input_size = load_OMNIGLOT(path, args.cuda, args.batch_size)
 
 def debug_shape(item):
     return item.cpu().detach().numpy().shape
@@ -269,7 +275,10 @@ if __name__ == "__main__":
     if ciwae_beta:
         files_name = "CIVAE_beta_learner"+str(beta.item())
         beta_writer_name = "CIVAE_beta_record"
-        
+    
+    if args.dataset_name == 'omniglot':
+        files_name = files_name + "_" + args.dataset_name
+
     if args.repetition != 1:
         files_name += "_repeat"+str(args.repetition).zfill(2) # support for repeated runs on cluster
     log_name = "logs/log_" + files_name + ".h5"
