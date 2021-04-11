@@ -55,7 +55,7 @@ def plot_h5_file_k64_average(log_names, label, color, skip_every = 0, at = None,
         average_values.append(np.mean(values))
         std_values.append(np.std(values))
 
-    #print("from epochs 0 to", number_of_epochs_min," averages, then only one value until", len(std_values))
+    print("from epochs 0 to", number_of_epochs_min," averages, then only one value until", len(std_values))
 
     average_values = -1 * np.asarray(average_values)
     std_values = np.asarray(std_values)

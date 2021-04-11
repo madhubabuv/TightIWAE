@@ -68,7 +68,7 @@ select_iwae_64 = lambda x: x[1]
 plt.figure(figsize=(8,4))
 #plt.title("Figure 5.a replication, IWAE64; "+experiment_name)
 select_func = select_iwae_64
-rolling_mean = 10 # 10
+rolling_mean = 5 # 10
 plot_all(select_func,rolling_mean,plot_name+"_iwae64", ylabel="IWAE-64")
 
 

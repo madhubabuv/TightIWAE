@@ -4,11 +4,11 @@ from plot_utils import *
 experiment_name = "Model replication"
 plot_name = "1_reference_"
 folder = "1_reference_model/logs/"
-piwaes = [folder+"log_PIWAE_M8_k8_repeat10.h5"] # till 2517
+piwaes = [folder+"log_PIWAE_M8_k8_repeat10.h5"] # till 3168
 miwaes = [folder+"log_MIVAE_M8_k8_repeat10.h5"] # !done
 iwaes = [folder+"log_MIVAE_M1_k64_repeat10.h5"] # !done
-vaes = [folder+"log_MIVAE_M1_k1_repeat10.h5"]   # till 3027
-ciwaes = [folder+"log_CIVAE_beta0.5_repeat10.h5"] # till 2684
+vaes = [folder+"log_MIVAE_M1_k1_repeat10.h5"]   # !done
+ciwaes = [folder+"log_CIVAE_beta0.5_repeat10.h5"] # till 3247
 
 ### bellow is unchanged ###
 
