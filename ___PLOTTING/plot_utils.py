@@ -16,7 +16,7 @@ def plot_h5_file_k64(log_name, label, color, f):
     selected = f([metrics_iwae_k, metrics_iwae_64, metrics_iwae_5000])
     plt.plot(np.asarray(selected) * -1, label=label, color=color)
 
-def plot_h5_file_k64_average(log_names, label, color, skip_every = 0, at = None, select_func=None, rolling_mean=None):
+def plot_h5_file_k64_average(log_names, label, color, skip_every = 0, at = None, select_func=None, rolling_mean=None, linewidth=2):
     repetitions = []
     for log_name in log_names:
         metrics_iwae_k, metrics_iwae_64, metrics_iwae_5000 = load_from_h5(log_name)
@@ -61,14 +61,14 @@ def plot_h5_file_k64_average(log_names, label, color, skip_every = 0, at = None,
     std_values = np.asarray(std_values)
     if rolling_mean is not None:
         pd_average_values = pd.DataFrame(average_values)
-        p = plt.plot(pd_average_values[0].rolling(rolling_mean).mean(), color, label=label)
+        p = plt.plot(pd_average_values[0].rolling(rolling_mean).mean(), color, linewidth=linewidth, label=label)
 
     else:
         p = plt.plot(xs, average_values, label=label, color=color)
         col = p[0].get_color()
 
         xs = list(range(len(average_values)))
-        plt.fill_between(xs, average_values-std_values, average_values+std_values, color=col, alpha=0.25)
+        plt.fill_between(xs, average_values-std_values, average_values+std_values, color=col, linewidth=linewidth, alpha=0.25)
 
     if at is not None:
         #print("sampling at", at-20, "to", at)
