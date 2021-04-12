@@ -7,7 +7,7 @@ Authors alphabetically: [Amine M'Charrak](https://github.com/mcharrak), [VÃ­t RÅ
 
 Reproduction of the paper [1] which implements PIWAE (partially importance weighted auto-encoder), MIWAE (multiply importance weighted auto-encoder) and the CIWAE (combination importance weighted autoencoder) as an extension to the IWAE (importance weighted auto-encoder) model of [2].
 
-We additionally extend the experiments with a larger tested model (with roughly doubled number of parameters), with evaluation on the Omniglot dataset (and also check cross-dataset generalization between Omniglot and MNIST) and finally propose an edited version of the CIWAE model with learnable parameter Beta (which results in a more robust model in terms of the Beta parameter initialization.
+We additionally extend the experiments with a **larger tested model** (with roughly doubled number of parameters), with **evaluation on the Omniglot dataset** (and also check cross-dataset generalization between Omniglot and MNIST) and finally propose an edited version of the **CIWAE model with learnable parameter Beta** (which results in a more robust model in terms of the Beta parameter initialization.
 
 More details can be seen in our report or in our poster (links to both to be added).
 
