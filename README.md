@@ -88,6 +88,28 @@ To plot the saved history files please inspect the functions at `plotting_utils/
 | log p̂(x)    | –83.92 | –83.84| –83.66| –84.98    | –85.31     |
 | −KL(Q\|\|P) | 0.06   | –0.02 | 0.19  | 0.06      | –0.02      |
 
+_Note: Due to compututional resources limitations, we run these experiments for the whole 3280 epochs, however with only one repetition (the original paper shows performance averaged over 4 runs)._
+
+## Reconstructions with qualitative and quantitative evaluations:
+
+On the **MNIST** dataset:
+
+<p align="center">
+<img src="https://raw.githubusercontent.com/madhubabuv/TightIWAE/master/_illustrations/reconstructions_mnist.png" width="660">
+</p>
+
+On the **Omniglot** dataset:
+
+<p align="center">
+<img src="https://raw.githubusercontent.com/madhubabuv/TightIWAE/master/_illustrations/reconstructions_omniglot.png" width="660">
+</p>
+
+And finally a **generalization-ability evaluation** between these datasets:
+
+<p align="center">
+<img src="https://raw.githubusercontent.com/madhubabuv/TightIWAE/master/_illustrations/reconstructions_cross_generalization.png" width="600">
+</p>
+
 
 # References:
 
