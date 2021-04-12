@@ -51,6 +51,29 @@ All runs save their history into `logs/*.h5` (such as `logs/log_MIVAE_M8_k8.h5` 
 
 To plot the saved history files please inspect the functions at `plotting_utils/plot_1_reference.py` and replace the paths to your experiment histories. Alternatively to generate reconstruction images use the script `python visualize_models.py --dataset_name mnist` while adjusting paths to your desired loaded models. With this code we also calculate the SSIM metric between the input images and the reconstructions (average across the whole test set). Note that the selected evaluation dataset with `--dataset_name` can differ from the one used to train the model (we argue that this can be used as a generalization ability proxy for tested methods across different datasets - namely those as similar as MNIST and Omniglot).
 
+## Results
+
+Figure 5. reconstruction from the original paper [1]. Shows the training progress of the newly tested methods:
+
+<div align="center">
+  <table>
+    <tr>
+      <td><img src="https://raw.githubusercontent.com/madhubabuv/TightIWAE/master/plotting_utils/1_reference__iwae64.png" width="400"></td>
+      <td><img src="https://raw.githubusercontent.com/madhubabuv/TightIWAE/master/plotting_utils/1_reference__iwae5000.png" width="400"></td>
+    </tr>
+    <tr>
+      <td align="center">(a) IWAE-64</td>
+      <td align="center">(b) log p̂(x) ( = IWAE-5000 )</td>
+    </tr>
+    <tr>
+      <td colspan=2>Figure 1: The metrics of IWAE-64 and log p̂(x) of referential models trained on the MNIST dataset. We used rolling window of 10 for better clarity of the IWAE-64 plot, also the figures are shared between (a) and (b).}</td>
+    </tr>
+
+  </table>
+</div>
+
+
+
 # References:
 
 [1] Rainforth, Tom, et al. "_Tighter variational bounds are not necessarily better._" ICML. PMLR, 2018. [arXiv:[1802.04537](https://arxiv.org/abs/1802.04537)]
