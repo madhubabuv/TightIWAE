@@ -13,6 +13,8 @@ More details can be seen in our report or in our poster (links to both to be add
 
 ## Run instructions:
 
+### Training:
+
 Start with inspecting:
 
 `python miwae_simplified.py --help`
@@ -36,11 +38,21 @@ python miwae_simplified.py --ciwae --beta 0.5 --dataset_name mnist
 python miwae_simplified.py --miwae --k 1 --M 1 --dataset_name mnist
 ```
 
-To load an older experiment (both model and history of losses) add `--cont` to the line.
+To use our proposed learnable Beta CIWAE (with initial Beta 0.5) run:
+```
+python miwae_simplified.py --ciwae-beta --beta 0.5 --dataset_name mnist
+```
 
+To load an older experiment (both model and history of losses) add `--cont` to the line. Furthermore if you need to run several repetitions of the same method settings, you can use `--repetition N`, which will mark the newly saved logs and models with this N.
+
+All runs save their history into `logs/*.h5` (such as `logs/log_MIVAE_M8_k8.h5` for MIWAE(8,8)) and full models into `logs/*.pt` (such as `logs/model_CIVAE_beta0.5_repeat10.pt` for CIWAE(Beta=0.5) with repetition set to 10).
+
+### Plotting and evaluation:
+
+To plot the saved history files please inspect the functions at `plotting_utils/plot_1_reference.py` and replace the paths to your experiment histories. Alternatively to generate reconstruction images use the script `python visualize_models.py --dataset_name mnist` while adjusting paths to your desired loaded models. With this code we also calculate the SSIM metric between the input images and the reconstructions (average across the whole test set). Note that the selected evaluation dataset with `--dataset_name` can differ from the one used to train the model (we argue that this can be used as a generalization ability proxy for tested methods across different datasets - namely those as similar as MNIST and Omniglot).
 
 # References:
 
-[1] Rainforth, Tom, et al. "_Tighter variational bounds are not necessarily better._" ICML. PMLR, 2018.
+[1] Rainforth, Tom, et al. "_Tighter variational bounds are not necessarily better._" ICML. PMLR, 2018. [arXiv:[1802.04537](https://arxiv.org/abs/1802.04537)]
 
-[2] Burda, Yuri, Roger Grosse, and Ruslan Salakhutdinov. "_Importance weighted autoencoders_." arXiv:1509.00519 (2015).
+[2] Burda, Yuri, Roger Grosse, and Ruslan Salakhutdinov. "_Importance weighted autoencoders_." (2015). [arXiv:[1509.00519](https://arxiv.org/abs/1509.00519)]
