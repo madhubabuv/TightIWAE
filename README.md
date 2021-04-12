@@ -110,6 +110,10 @@ And finally a **generalization-ability evaluation** between these datasets:
 <img src="https://raw.githubusercontent.com/madhubabuv/TightIWAE/master/_illustrations/reconstructions_cross_generalization.png" width="600">
 </p>
 
+# Acknowledgements:
+
+Implementation of the code present in this repository is based on the [basic Pytorch VAE demo](https://github.com/pytorch/examples/blob/master/vae/main.py) and the unofficial [MIWAE implementation by yoonholee](https://github.com/yoonholee/pytorch-vae). We have however edited the code significantly, added new methods (PIWAE, CIWAE including a new learnable Beta version of CIWAE), new experiments and evaluation metrics (SSIM from [here](https://github.com/Po-Hsun-Su/pytorch-ssim)). Data loaders have also been inspired by existing repositories ([this one](https://github.com/yoonholee/pytorch-vae/blob/master/data_loader/stoch_mnist.py) and [IWAE official](https://github.com/yburda/iwae/blob/master/datasets.py)) to maintain reproducibility of the results between implementations.
+
 
 # References:
 
