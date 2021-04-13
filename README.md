@@ -3,13 +3,18 @@ Part of the [Advanced Topics in Machine Learning course of 2021](https://www.cs.
 
 Authors alphabetically: [Amine M'Charrak](https://github.com/mcharrak), [Vít Růžička](https://github.com/previtus), [Sangyun Shin](https://github.com/yunshin), [Madhu Vankadari](https://github.com/madhubabuv/) @ cs.ox.ac.uk
 
+<p align="center">
+<a href="https://github.com/madhubabuv/TightIWAE/blob/main/_report/ATML_poster_final.pdf"><img src="https://raw.githubusercontent.com/madhubabuv/TightIWAE/master/_report/ATML_poster_final.gif" width="700"></a>
+</p>
+
+
 ## Description:
 
 Reproduction of the paper [1] which implements PIWAE (partially importance weighted auto-encoder), MIWAE (multiply importance weighted auto-encoder) and the CIWAE (combination importance weighted autoencoder) as an extension to the IWAE (importance weighted auto-encoder) model of [2].
 
 We additionally extend the experiments with a **larger tested model** (with roughly doubled number of parameters), with **evaluation on the Omniglot dataset** (and also check cross-dataset generalization between Omniglot and MNIST) and finally propose an edited version of the **CIWAE model with learnable parameter Beta** (which results in a more robust model in terms of the Beta parameter initialization.
 
-More details can be seen in our report or in our poster (links to both to be added).
+More details can be seen in our [report](https://github.com/madhubabuv/TightIWAE/blob/main/_report/ATML_report_final.pdf) or in our [poster](https://github.com/madhubabuv/TightIWAE/blob/main/_report/ATML_poster_final.pdf).
 
 ## Run instructions:
 
