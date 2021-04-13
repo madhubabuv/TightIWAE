@@ -132,6 +132,34 @@ class VAE(nn.Module):
         lqzx = z_distribution.log_prob(z).sum(-1)
         kl = -lpz + lqzx
         return -kl + lpxz
-
-
     
+    def sample_q_z_given_x(self, x, M, k):
+        input_x = x.view(-1, self.input_size).to(self.device)
+        # encoded distribution ~ q(z|x, params) = Normal (real input_x; encoder_into_Mu, encoder_into_Std )
+            
+        z_distribution = self.encoder(input_x)
+            
+        # sample z values from this distribution
+        z = z_distribution.rsample(torch.Size([M, k]))
+        
+        return z
+    
+    def sample_importance_weights_w_i(self, x, M, k):
+
+        input_x = x.view(-1, self.input_size).to(self.device)
+        # encoded distribution ~ q(z|x, params) = Normal (real input_x; encoder_into_Mu, encoder_into_Std )
+            
+        z_distribution = self.encoder(input_x)
+        # sample z values from this distribution
+        z = z_distribution.rsample(torch.Size([M, k]))
+    
+        # reconstructions distribution ~ p(x|z, params) = Normal/Bernoulli (sampled z)
+        x_distribution = self.decoder(z)
+        
+        self.prior_distribution = Normal(torch.zeros([self.latent_size]).to(device), torch.ones([self.latent_size]).to(device))
+        # sample z values from the prior distribution
+        z_prior_dist = self.prior_distribution.rsample(torch.Size([M, k]))
+
+        
+        w_i = (x_distribution.probs*z_prior_distribution.probs)/(z_distribution.probs)
+        return w_i

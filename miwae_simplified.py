@@ -35,6 +35,7 @@ parser.add_argument('--M', type=int, default=1)
 parser.add_argument('--piwae', action='store_true', default=False)
 parser.add_argument('--miwae', action='store_true', default=False)
 parser.add_argument('--ciwae', action='store_true', default=False)
+parser.add_argument('--rpiwae', action='store_true', default=False)
 
 parser.add_argument('--repetition', type=int, default=1)
 
@@ -55,6 +56,7 @@ piwae = args.piwae
 miwae = args.miwae
 ciwae = args.ciwae
 ciwae_beta = args.ciwae_beta
+rpiwae = args.rpiwae
 
 print("runnning on", device)
 if piwae:
@@ -67,6 +69,9 @@ elif ciwae:
 elif ciwae_beta:
     beta = args.beta
     print('Using CIWAE with beta learning, initial beta = ' +str(beta)+'\n' )
+elif rpiwae:
+    print('Using RPIWAE\n')
+    
 
 if args.dataset_name == 'mnist':
     from datasets import load_binarised_MNIST
@@ -97,7 +102,7 @@ model = VAE(input_size=input_size,piwae=piwae,device=device,
 # latent size 50
 # number of layers in Enc/Dec only 2
 
-if piwae:
+if piwae or rpiwae:
     optimizer_encoder = optim.Adam(model.encoder.parameters(),lr=1e-3)
     optimizer_decoder = optim.Adam(model.decoder.parameters(),lr=1e-3)
     scheduler_enc = optim.lr_scheduler.MultiStepLR(optimizer_encoder, milestones=milestones, gamma=10 ** (-1 / 7))
@@ -210,6 +215,44 @@ def train(epoch,M,k):
             train_loss += loss.item()
             optimizer.step()
             loss = loss.item()
+        # stochastic order for two target optimization in piwae
+        elif rpiwae:
+            
+            ### first determine order of network updates with Bernoulli trial
+            encoder_first = np.random.randint(2)
+            
+            if encoder_first:
+                
+                _, elbo, loss_mk = model(data, M=10, k=10)
+                encoder_loss = loss_mk.mean()
+                optimizer_encoder.zero_grad()
+                encoder_loss.backward()
+                optimizer_encoder.step()
+
+                _, elbo, loss_mk = model(data, M=1, k=10)
+                decoder_loss = loss_mk.mean()
+                optimizer_decoder.zero_grad()
+                decoder_loss.backward()
+                optimizer_decoder.step()
+                
+            else:
+                
+                _, elbo, loss_mk = model(data, M=1, k=10)
+                decoder_loss = loss_mk.mean()
+                optimizer_decoder.zero_grad()
+                decoder_loss.backward()
+                optimizer_decoder.step()
+                
+                _, elbo, loss_mk = model(data, M=10, k=10)
+                encoder_loss = loss_mk.mean()
+                optimizer_encoder.zero_grad()
+                encoder_loss.backward()
+                optimizer_encoder.step()
+                
+            
+            loss = (encoder_loss.item() + decoder_loss.item())/2.0
+            train_loss += loss
+        
             
         if batch_idx % args.log_interval == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
@@ -275,6 +318,8 @@ if __name__ == "__main__":
     if ciwae_beta:
         files_name = "CIVAE_beta_learner"+str(beta.item())
         beta_writer_name = "CIVAE_beta_record"
+    if rpiwae:
+        files_name = "RPIWAE_M"+str(M)+"_k"+str(k)
     
     if args.dataset_name == 'omniglot':
         files_name = files_name + "_" + args.dataset_name
@@ -331,7 +376,7 @@ if __name__ == "__main__":
 
                 save_image(sample.view(64, 1, 28, 28), 'results/sample_epoch' + str(epoch).zfill(4) + '.png')
             '''
-            if piwae:
+            if piwae or rpiwae:
                 scheduler_enc.step()
                 scheduler_dec.step()
             elif ciwae_beta:
